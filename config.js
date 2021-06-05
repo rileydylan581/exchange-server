@@ -2,6 +2,8 @@ const mongoose = require("mongoose");
 
 exports.PORT = parseInt(process.env.PORT);
 
+exports.spread = 0.01; // 1% Spread
+
 exports.Account = require("./models/account");
 exports.Company = require("./models/company");
 

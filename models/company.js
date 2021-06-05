@@ -5,7 +5,8 @@ const companySchema = mongoose.Schema({
 	name: {type: String, required: true, maxlength: 36, minlength: 5},
 	ticker: {type: String, required: true, maxlength: 6, minlength: 2},
 	owner: {type: String, required: true, maxlength: 36, minlength: 36},
-	price: {type: Number, required: false, default: 1},
+	ask: {type: Number, required: false, default: 1},
+	bid: {type: Number, required: false, default: 1},
 	shares: {type: Number, required: false, default: 100000}
 });
 

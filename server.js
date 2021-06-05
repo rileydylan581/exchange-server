@@ -1,7 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 const bodyParser = require("body-parser");
-
+const WebSocket = require("ws");
 const config = require("./config");
 
 app = express();
@@ -17,6 +17,6 @@ app.use("/accounts", accountRoutes);
 app.use("/companies", companyRoutes);
 //app.use("/trade", tradeRoutes);
 
-app.listen(config.PORT, () => {
+const server = app.listen(config.PORT, () => {
 	console.log(`Listening On Port ${config.PORT}...`);
 });
