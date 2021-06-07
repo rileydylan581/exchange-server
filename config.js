@@ -8,6 +8,7 @@ exports.MAKER_ID = process.env.MAKER_ID;
 exports.Account = require("./models/account");
 exports.Company = require("./models/company");
 exports.Order = require("./models/order");
+exports.Minute = require("./models/minute");
 
 exports.DB_USER = process.env.DB_USER;
 exports.DB_PASS = process.env.DB_PASS;

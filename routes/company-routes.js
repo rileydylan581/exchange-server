@@ -5,7 +5,7 @@ const config = require("../config");
 
 
 const getCompanys = async (req, res) => {
-	await config.Company.find().exec().catch(err => {
+	await config.Company.find({}).exec().catch(err => {
 		return res.status(500).json({message: `Error: ${err}`, result: {error: err}});
 	}).then(result => {
 		return res.json({message: "Companys Retrieved Successfully.", result: result});
@@ -29,7 +29,7 @@ const createCompany = async (req, res) => {
 	const newCompany = config.Company({
 		cid: uuid.v4(),
 		name: req.body.name,
-		ticker: req.body.ticker,
+		symbol: req.body.symbol,
 		owner: req.body.owner
 	});
 	
@@ -46,7 +46,11 @@ const createCompany = async (req, res) => {
 		}).then(async (uaresult) => {
 			await newCompany.save().catch(err => {
 				return res.status(400).json({message: `Error: ${err}`, result: {error: err}});
-			}).then(cresult => {
+			}).then(async cresult => {
+				const newMinute = config.Minute({symbol: newCompany.symbol});
+				await newMinute.save().catch(err => {
+					console.log(err);
+				}).then(r => {});
 				return res.json({message: "Company Created Successfully.", result: result});
 			});
 		});

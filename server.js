@@ -20,3 +20,6 @@ app.use("/orders", orderRoutes);
 const server = app.listen(config.PORT, () => {
 	console.log(`Listening On Port ${config.PORT}...`);
 });
+
+const data_collector = require("./data_collector");
+data_collector.start();
