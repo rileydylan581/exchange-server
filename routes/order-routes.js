@@ -113,11 +113,11 @@ const executeBuyOrder = async (buy, sells) => {
 				await config.Order.deleteOne({oid: buy.oid}).exec().catch(err => {
 					return console.log(err);
 				}).then(r=>{});
-
+				let sell_promises = [];
 				for (sell of sells) {
 					const seller_id = sell.aid;
-				
-					await config.Account.findOne({aid: seller_id}).exec().catch(err => {
+					
+					let promise = new Promise((sell_resolve, sell_reject) => {await config.Account.findOne({aid: seller_id}).exec().catch(err => {
 						return console.log(err);
 					}).then(async result => {
 						if (!result) {
@@ -149,11 +149,30 @@ const executeBuyOrder = async (buy, sells) => {
 							}).then(async r => {
 								await config.Order.deleteOne({oid: sell.oid}).exec().catch(err => {
 									return console.log(err);
-								}).then(r=>{});
+								}).then(r=>{sell_resolve(true)});
 							});
 						});
-					});
+					})});
+					promise.then((res) => {
+						promise.done = true;
+					})
+					sell_promises.push(promise);
 				}
+
+				while (true) {
+					let done = true;
+					for (let p of sell_promises) {
+						if (!p.done) {
+							done = false;
+							break;
+						}
+					}
+					if (done) {
+						break;
+					}
+				}
+
+				resolve(true);
 				
 
 			});
@@ -200,10 +219,12 @@ const executeSellOrder = async (sell, buys) => {
 					return console.log(err);
 				}).then(r=>{});
 
+				let buy_promises = [];
+
 				for (buy of buys) {
 					const buyer_id = buy.aid;
 				
-					await config.Account.findOne({aid: buyer_id}).exec().catch(err => {
+					let promise = new Promise((buy_resolve, buy_reject) => {await config.Account.findOne({aid: buyer_id}).exec().catch(err => {
 						return console.log(err);
 					}).then(async result => {
 						if (!result) {
@@ -241,12 +262,31 @@ const executeSellOrder = async (sell, buys) => {
 							}).then(async r => {
 								await config.Order.deleteOne({oid: buy.oid}).exec().catch(err => {
 									return console.log(err);
-								}).then(r=>{});
+								}).then(r=>{promise.resolve(true);});
 							});
 						});
+					})});
+
+					promise.then(r => {
+						promise.done = true;
 					});
+					buy_promises.push(promise);
 				}
 				
+				while (true) {
+					let done = true;
+					for (p in buy_promises) {
+						if (!p.done) {
+							done = false;
+							break;
+						}
+					}
+					if (done) {
+						break;
+					}
+				}
+
+				resolve(true);
 
 			});
 		});
@@ -314,12 +354,11 @@ const handleOrder = async (order) => {
 					}
 
 					let res = executeBuyOrder(buy, sells_used, open_orders);
+					res.then(r => {
+						res.done = true;
+					});
 					buy_promises.push(res);
 				}
-			}
-
-			for (let i = 0; i < buy_promises.length; i++) {
-				buy_promises[i].then(res => {buy_promises[i].done = true;});
 			}
 
 			let done = true;
@@ -373,14 +412,13 @@ const handleOrder = async (order) => {
 					console.log(sell);
 					console.log(sells_used);
 					let res = executeSellOrder(sell, buys_used, open_orders);
+					res.then(r => {
+						res.done = true;
+					});
 					sell_promises.push(res);
 				}
 			}
 			
-			for (let i = 0; i < sell_promises.length; i++) {
-				sell_promises[i].then(res => {sell_promises[i].done = true;});
-			}
-
 			let done = true;
 			while (true) {
 				for (promise of sell_promises) {
@@ -396,7 +434,7 @@ const handleOrder = async (order) => {
 
 			await config.Order.find().exec().catch(err => {
 				return console.log(err);
-			}).then(let still_open_orders => {
+			}).then(still_open_orders => {
 				let buys_left = still_open_orders.filter(o => o.side=="buy" && o.symbol==order.symbol).sortBy("shares").reverse();
 				let sells_left = still_open_orders.filter(o => o.side=="sell" && o.symbol==order.symbol).sortBy("shares").reverse();
 
@@ -454,7 +492,7 @@ const cancelOrder = async (req, res) => {
 	const oid = req.params.oid;
 
 	await config.Order.deleteOne({oid: oid}).exec().catch(err => {
-		return res.status(500).json({message: `Error: ${err}`, result: {error: err});
+		return res.status(500).json({message: `Error: ${err}`, result: {error: err}});
 	}).then(r => {
 		return res.json({message: "Order Canceled Successfully.", result: {"oid": oid}});
 	});
