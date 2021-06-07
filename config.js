@@ -2,10 +2,12 @@ const mongoose = require("mongoose");
 
 exports.PORT = parseInt(process.env.PORT);
 
-exports.spread = 0.01; // 1% Spread
+exports.spread = 0.0001; // 0.01% Spread
+exports.MAKER_ID = process.env.MAKER_ID;
 
 exports.Account = require("./models/account");
 exports.Company = require("./models/company");
+exports.Order = require("./models/order");
 
 exports.DB_USER = process.env.DB_USER;
 exports.DB_PASS = process.env.DB_PASS;
