@@ -3,6 +3,7 @@ const router = express.Router();
 const uuid = require("uuid");
 const config = require("../config");
 const async = require("async");
+const company = require("../models/company");
 
 Array.prototype.sortBy = function (p) {
   return this.slice(0).sort(function (a, b) {
@@ -40,7 +41,8 @@ const changePrice = async (symbol, pct_buy, pct_sell) => {
         new_ask *= 1 - pct_diff / 10;
       }
 
-      let new_bid = new_ask * (1 - config.spread);
+      // let new_bid = new_ask * (1 - config.spread);
+      let new_bid = new_ask;
 
       await config.Company.updateOne(
         { symbol: symbol },
@@ -95,47 +97,64 @@ const executeOrder = async (main_order, attributing_orders) => {
           reject(err);
         }
 
-        await config.Company.findOne({ symbol: main_id.symbol })
+        await config.Company.findOne({ symbol: main_order.symbol })
           .exec()
           .catch((err) => {
-            reject(err);
+            2699;
           })
           .then(async (company_result) => {
             if (!company_result) {
-              reject(err);
+              reject("Company Doesn't Exist.");
             }
 
             let new_portfolio = { ...result.portfolio };
 
             if (Object.keys(new_portfolio).includes(main_order.symbol)) {
-              new_portfolio[main_order.symbol] += main_order.shares;
+              if (main_order.side == "buy") {
+                new_portfolio[main_order.symbol] += main_order.shares;
+              } else if (main_order.side == "sell") {
+                new_portfolio[main_order.symbol] -= main_order.shares;
+              }
             } else {
-              new_portfolio[main_order.symbol] = main_order.shares;
+              if (main_order.side == "buy") {
+                new_portfolio[main_order.symbol] = main_order.shares;
+              }
+              2699;
             }
 
-            if (new_portfolio[main_order.symbol] >= company_result.shares / 2) {
-              await config.Company.updateOne(
-                { symbol: main_order.symbol },
-                { owner: result.aid }
-              )
-                .exec()
-                .catch((err) => {
-                  reject(err);
-                })
-                .then((r) => {});
+            if (main_order.side == "buy") {
+              if (
+                new_portfolio[main_order.symbol] >=
+                company_result.shares / 2
+              ) {
+                await config.Company.updateOne(
+                  { symbol: main_order.symbol },
+                  { owner: result.aid }
+                )
+                  .exec()
+                  .catch((err) => {
+                    reject(err);
+                  })
+                  .then((r) => {});
+              }
             }
 
-            let main_order_price = company_result.ask * main_order.shares;
-            console.log("UPDATING ACCOUNT LINE 62, NEW ACCOUNT:");
-            console.log({
-              portfolio: new_portfolio,
-              cash: result.cash - main_order_price,
-            });
+            let new_cash;
+            let main_order_price;
+
+            if (main_order.side == "buy") {
+              main_order_price = company_result.ask * main_order.shares;
+              new_cash = result.cash - main_order_price;
+            } else if (main_order.side == "sell") {
+              main_order_price = company_result.bid * main_order.shares;
+              new_cash = result.cash + main_order_price;
+            }
+
             await config.Account.updateOne(
               { aid: main_id },
               {
                 portfolio: new_portfolio,
-                cash: result.cash - main_order_price,
+                cash: new_cash,
               }
             )
               .exec()
@@ -143,10 +162,10 @@ const executeOrder = async (main_order, attributing_orders) => {
                 reject(err);
               })
               .then(async (r) => {
-                payFee(
-                  company_result.ask * main_order.shares,
-                  company_result.bid * main_order.shares
-                );
+                // payFee(
+                //   company_result.ask * main_order.shares,
+                //   company_result.bid * main_order.shares
+                // );
                 await config.Order.deleteOne({ oid: main_order.oid })
                   .exec()
                   .catch((err) => {
@@ -211,23 +230,25 @@ const executeOrder = async (main_order, attributing_orders) => {
                                 }
                               }
 
-                              let aorder_price =
-                                company_result.bid * aorder.shares;
+                              let aorder_price;
+                              let new_cash;
+                              if (aorder.side == "buy") {
+                                aorder_price =
+                                  company_result.ask * aorder.shares;
+                                new_cash = result.cash - aorder_price;
+                              } else if (aorder.side == "sell") {
+                                aorder_price =
+                                  company_result.bid * aorder.shares;
+                                new_cash = result.cash + aorder_price;
+                              }
 
-                              console.log(
-                                "UPDATING ACCOUNT LINE 99, NEW ACCOUNT:"
-                              );
-                              console.log({
-                                portfolio: new_portfolio,
-                                cash: result.cash + aorder_price,
-                              });
                               await config.Account.updateOne(
                                 {
                                   aid: orderer_id,
                                 },
                                 {
                                   portfolio: new_portfolio,
-                                  cash: result.cash + aorder_price,
+                                  cash: new_cash,
                                 }
                               )
                                 .exec()
@@ -273,7 +294,8 @@ const handleOrder = async (order) => {
     })
     .then(async (r) => {
       await config.Order.find()
-        .exec.catch((err) => {
+        .exec()
+        .catch((err) => {
           return console.log(err);
         })
         .then(async (open_orders) => {
@@ -328,7 +350,7 @@ const handleOrder = async (order) => {
           let order_promises_left = order_promises.length;
 
           for (let order_promise of order_promises) {
-            order_promise.then((r) => {
+            order_promise.then(async (r) => {
               order_promises_left--;
               if (order_promises_left == 0) {
                 await config.Order.find()
@@ -353,7 +375,7 @@ const handleOrder = async (order) => {
                     let sum_buys = 0;
                     let sum_sells = 0;
 
-                    if (buys.length > 0) {
+                    if (buys_left.length > 0) {
                       sum_buys = buys_left
                         .map((b) => b.shares)
                         .reduce((a, b) => a + b);

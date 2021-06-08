@@ -15,11 +15,12 @@ const collect = async () => {
 				}
 
 				let new_prices = [...result.prices];
-			
-				new_prices.push({datetime: new Date(), price: company.ask});
+				let new_price = {datetime: new Date(), price: company.ask}
 
-				console.log("NEW DATA FOR ",company.symbol);
-				console.log(new_prices);
+				new_prices.push(new_price);
+
+				console.log("NEW PRICE FOR ",company.symbol);
+				console.log(new_price);
 
 				await config.Minute.updateOne({symbol: company.symbol}, {prices: new_prices}).exec().catch(err => {
 					console.log(err);
