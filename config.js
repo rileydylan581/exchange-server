@@ -10,6 +10,22 @@ exports.Company = require("./models/company");
 exports.Order = require("./models/order");
 exports.Minute = require("./models/minute");
 
+exports.getAccount = async (f) => {};
+exports.getCompany = async (f) => {};
+
+exports.getAccounts = async () => {};
+exports.getCompanys = async () => {};
+exports.getOrders = async () => {};
+
+exports.insertAccount = async (a) => {};
+exports.insertCompany = async (c) => {};
+exports.insertOrder = async (o) => {};
+
+exports.updateAccount = async (u) => {};
+exports.updateCompany = async (u) => {};
+
+exports.deleteOrder = async (f) => {};
+
 exports.DB_USER = process.env.DB_USER;
 exports.DB_PASS = process.env.DB_PASS;
 exports.DB_CLUSTER = process.env.DB_CLUSTER;
@@ -17,9 +33,15 @@ exports.DB_NAME = process.env.DB_NAME;
 
 exports.CONN_URI = `mongodb+srv://${exports.DB_USER}:${exports.DB_PASS}@${exports.DB_CLUSTER}.jqaro.mongodb.net/${exports.DB_NAME}?retryWrites=true&w=majority`;
 
-mongoose.connect(exports.CONN_URI, {useUnifiedTopology: true, useNewUrlParser: true }).then(() => {
-	console.log("Connected To Database");
-}).catch(err => {
-	console.log(exports.CONN_URI);
-	console.log(`Connection Failed!\nError: ${err}`);
-});
+mongoose
+  .connect(exports.CONN_URI, {
+    useUnifiedTopology: true,
+    useNewUrlParser: true,
+  })
+  .then(() => {
+    console.log("Connected To Database");
+  })
+  .catch((err) => {
+    console.log(exports.CONN_URI);
+    console.log(`Connection Failed!\nError: ${err}`);
+  });
